@@ -63,6 +63,8 @@ powershell -ExecutionPolicy Bypass -File .\uninstall.ps1
 | _(none)_       | Watch for a **new** connection. A pad that is already on when the watcher starts is ignored, so rebooting with the controller on won't relaunch Big Picture. |
 | `--launch-now` | Also fire if a controller is already connected at start. Use this if you usually boot with the pad already on and want Big Picture then too. |
 | `--wake`       | On connect, also wake the monitor and dismiss the screensaver before opening Big Picture. **Cannot** bypass a password/PIN lock &mdash; see **Waking the screen** below. |
+| `--no-guard`   | Open Big Picture even when a game is running or a fullscreen app owns the foreground. Off by default &mdash; see **Not interrupting your game** below. |
+| `--no-park`    | Leave the mouse pointer where it is. By default it is parked in the bottom-right corner when Big Picture opens. |
 | `--log`        | Write a timestamped log to `%LOCALAPPDATA%\controller-bigpicture\watcher.log`. Handy for confirming the silent `pythonw` instance is alive. |
 
 ## Waking the screen (`--wake`)
@@ -96,6 +98,56 @@ XInput exposes up to four controller slots. Once a second the watcher asks XInpu
 whether any slot is connected. On a transition from "none" to "connected" it calls
 `os.startfile("steam://open/bigpicture")`, which hands off to Steam's protocol
 handler (starting Steam first if it isn't running).
+
+## Summon it on demand: Guide double-tap
+
+Double-tap the **Guide** (Xbox) button and Big Picture opens, whatever is running.
+This is explicit, so unlike the automatic trigger it ignores the guards below.
+
+The Guide button is deliberately masked out of the documented `XInputGetState`.
+Reading it needs `XInputGetStateEx`, exported only as **ordinal 100** &mdash;
+undocumented, but stable since 2007 and present in `xinput1_3` / `xinput1_4`. On the
+ancient `xinput9_1_0` stub it is missing, and the watcher logs `guide=unavailable`
+and carries on with connect-detection only.
+
+## Not interrupting your game
+
+Naively, "did a controller just appear?" is a trap. **XInput lies briefly.** Steam
+Input hides the physical pad and substitutes a virtual one when a game launches or
+changes input config, and wireless pads drop out when they idle-power-off and
+reconnect. A watcher that trusts a single failed poll sees unplug + replug, opens
+Big Picture on top of your running game, and the game pauses because it lost focus.
+
+Guards, in the order they are checked:
+
+1. **Debounce** &mdash; a dropout must persist for 5 consecutive polls (~5s) before it
+   counts as a disconnect, so blips never reset the "connected" latch.
+2. **Game guard** &mdash; nothing fires while a Steam game is running. Read from
+   `HKCU\Software\Valve\Steam\RunningAppID`, which stays true for a game that is
+   alt-tabbed, minimised, or on another monitor &mdash; cases the foreground checks
+   below would miss.
+3. **Fullscreen guard** &mdash; checked two ways, since exclusive-fullscreen and
+   borderless windowed games report differently: `SHQueryUserNotificationState`
+   catches D3D fullscreen, and a window-rect-vs-monitor comparison catches
+   borderless.
+4. **Cooldown** &mdash; at most one launch per 30 seconds regardless.
+
+`--wake`'s screensaver keypress is gated too: it is only injected when the
+screensaver is actually running or the session has been idle 60s+. Otherwise it
+would fire a phantom keypress straight into whatever you're playing.
+
+Pass `--no-guard` to disable guards 2 and 3.
+
+## Battery warning
+
+A toast appears when a wireless pad's battery hits the bottom bucket. Toasts never
+steal focus, so this is safe mid-game.
+
+**On the threshold:** XInput has no battery percentage. `XInputGetBatteryInformation`
+reports one of four coarse buckets only &mdash; `EMPTY`, `LOW`, `MEDIUM`, `FULL` &mdash;
+so an exact "warn under 10%" is not expressible. The warning fires at `EMPTY`, the
+lowest bucket. Set `BATTERY_WARN_AT` to `BATTERY_LEVEL_LOW` for an earlier, chattier
+warning. Wired pads report no battery and are skipped.
 
 ## Troubleshooting
 

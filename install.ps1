@@ -9,10 +9,14 @@
     Also wake the display / dismiss the screensaver on controller connect.
 .PARAMETER Log
     Write a startup/connect log to %LOCALAPPDATA%\controller-bigpicture.
+.PARAMETER NoGuard
+    Open Big Picture even when a fullscreen app already owns the foreground.
+    Off by default, because launching over a running game pauses it.
 #>
 param(
     [switch]$Wake,
-    [switch]$Log
+    [switch]$Log,
+    [switch]$NoGuard
 )
 
 $ErrorActionPreference = 'Stop'
@@ -30,8 +34,9 @@ if (-not $pythonw) {
 }
 
 $arguments = '"{0}"' -f $watcher
-if ($Wake) { $arguments += ' --wake' }
-if ($Log)  { $arguments += ' --log' }
+if ($Wake)    { $arguments += ' --wake' }
+if ($Log)     { $arguments += ' --log' }
+if ($NoGuard) { $arguments += ' --no-guard' }
 
 $startup = [Environment]::GetFolderPath('Startup')
 $lnkPath = Join-Path $startup 'Controller Big Picture.lnk'
