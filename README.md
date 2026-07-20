@@ -26,20 +26,11 @@ Turn a controller on. Big Picture opens. That's the whole thing.
 
 I was annoyed at RAM prices.
 
-That's genuinely the whole origin story. I'd been speccing up a living room box, watching memory
-prices do what they've been doing, and I got to somewhere around £1500 before I stopped and asked
-myself what I was actually buying. A machine whose entire job is to sit under the telly and be in
-Big Picture when I pick up a controller.
+I'd been speccing up a living room box and got to about £1500 before asking what I was actually
+buying: a machine whose job is to sit under the telly and be in Big Picture when I pick up a
+controller. The PC four feet away already does everything else. It just doesn't know to do that bit.
 
-I already own a PC that can do that. It's four feet away. It just doesn't *know* it's supposed to.
-
-So I sat down and worked out what the console experience actually consists of, and it turns out
-it's smaller than you'd think. You turn a pad on and the thing wakes up in a controller UI. You put
-the pad down and it gets out of the way. That's the product. Everything else is a case and a
-graphics card I've already got.
-
-This is that behaviour, in about 600 lines of Python, using nothing but the standard library. It
-cost me a weekend and no money at all.
+So this does it. Around 600 lines of Python, standard library only, and it cost nothing.
 
 ```console
 $ python controller_bigpicture.py --wake --log
